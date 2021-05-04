@@ -17,5 +17,7 @@ rc-update add devfs boot
 rc-update add procfs boot
 rc-update add sysfs boot
 
-for d in bin etc lib root sbin usr; do tar c "/$d" | tar x -C /my-rootfs; done
+rc-update add agent boot
+
+for d in bin etc lib root sbin usr; do tar c "/$d" | tar x -C /my-rootfs;done
 for dir in dev proc run sys var; do mkdir /my-rootfs/${dir}; done
