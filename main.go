@@ -5,13 +5,14 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
 
 type (
 	execReq struct {
-		Command string `json:"command"`
+		Command string `json:"command" validate:"required"`
 	}
 
 	execRes struct {
@@ -19,10 +20,15 @@ type (
 		Stdout  string `json:"stdout"`
 		Stderr  string `json:"stderr"`
 	}
+
+	CustomValidator struct {
+		validator *validator.Validate
+	}
 )
 
 func main() {
 	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -37,6 +43,10 @@ func handleExec(c echo.Context) error {
 	err := c.Bind(req)
 	if err != nil {
 		return err
+	}
+	err = c.Validate(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	args := strings.Fields(req.Command)
@@ -55,4 +65,11 @@ func handleExec(c echo.Context) error {
 		Stdout:  string(out),
 		Stderr:  "",
 	})
+}
+
+func (cv *CustomValidator) Validate(i interface{}) error {
+	if err := cv.validator.Struct(i); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+	return nil
 }
