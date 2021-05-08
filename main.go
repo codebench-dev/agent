@@ -1,38 +1,58 @@
 package main
 
 import (
+	"net/http"
 	"os/exec"
 	"strings"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
-type execRequest struct {
-	Command string `json:"command" binding:"required"`
-}
+type (
+	execReq struct {
+		Command string `json:"command"`
+	}
+
+	execRes struct {
+		Command string `json:"command"`
+		Stdout  string `json:"stdout"`
+		Stderr  string `json:"stderr"`
+	}
+)
 
 func main() {
-	r := gin.Default()
-	r.POST("/exec", func(c *gin.Context) {
-		var req execRequest
-		c.BindJSON(&req)
+	e := echo.New()
 
-		args := strings.Fields(req.Command)
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
 
-		out, err := exec.Command(args[0], args[1:]...).Output()
-		if err != nil {
-			c.JSON(400, gin.H{
-				"command": req.Command,
-				"stdout":  string(out),
-				"stderr":  err.Error(),
-			})
-		}
-		c.JSON(200, gin.H{
-			"command": req.Command,
-			"stdout":  string(out),
-			"stderr":  "",
+	e.POST("/exec", handleExec)
+
+	e.Logger.Fatal(e.Start(":8080"))
+}
+
+func handleExec(c echo.Context) error {
+	req := new(execReq)
+	err := c.Bind(req)
+	if err != nil {
+		return err
+	}
+
+	args := strings.Fields(req.Command)
+
+	out, err := exec.Command(args[0], args[1:]...).Output()
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, execRes{
+			Command: req.Command,
+			Stdout:  string(out),
+			Stderr:  err.Error(),
 		})
+	}
 
+	return c.JSON(http.StatusOK, execRes{
+		Command: req.Command,
+		Stdout:  string(out),
+		Stderr:  "",
 	})
-	r.Run()
 }
