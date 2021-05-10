@@ -2,12 +2,14 @@ package main
 
 import (
 	"net/http"
+	"os"
 	"os/exec"
 	"strings"
 
 	"github.com/go-playground/validator"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"github.com/sirupsen/logrus"
 )
 
 type (
@@ -24,6 +26,15 @@ type (
 	CustomValidator struct {
 		validator *validator.Validate
 	}
+
+	runCReq struct {
+		Code string `json:"code" validate:"required"`
+	}
+
+	runCRes struct {
+		Stdout string `json:"stdout"`
+		Stderr string `json:"stderr"`
+	}
 )
 
 func main() {
@@ -34,6 +45,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.POST("/exec", handleExec)
+	e.POST("/run/c", handleRunC)
 	e.GET("/health", health)
 
 	e.Logger.Fatal(e.Start(":8080"))
@@ -77,4 +89,61 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 
 func health(c echo.Context) error {
 	return c.String(http.StatusOK, "OK")
+}
+
+func handleRunC(c echo.Context) error {
+	req := new(runCReq)
+	err := c.Bind(req)
+	if err != nil {
+		return err
+	}
+	err = c.Validate(req)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	f, err := os.Create("/tmp/main.c")
+
+	if err != nil {
+		logrus.WithError(err).Error()
+		return c.JSON(http.StatusInternalServerError, runCRes{
+			Stdout: "",
+			Stderr: err.Error(),
+		})
+	}
+
+	defer f.Close()
+
+	_, err = f.WriteString(req.Code)
+
+	if err != nil {
+		logrus.WithError(err).Error()
+		return c.JSON(http.StatusInternalServerError, runCRes{
+			Stdout: "",
+			Stderr: err.Error(),
+		})
+	}
+
+	out, err := exec.Command("gcc", "/tmp/main.c", "-o", "/tmp/a.out").Output()
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, runCRes{
+			Stdout: string(out),
+			Stderr: err.Error(),
+		})
+	}
+
+	out, err = exec.Command("/tmp/a.out").Output()
+
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, runCRes{
+			Stdout: string(out),
+			Stderr: err.Error(),
+		})
+	}
+
+	return c.JSON(http.StatusOK, runCRes{
+		Stdout: string(out),
+		Stderr: "",
+	})
 }
