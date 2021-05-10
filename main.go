@@ -34,6 +34,7 @@ func main() {
 	e.Use(middleware.Recover())
 
 	e.POST("/exec", handleExec)
+	e.GET("/health", health)
 
 	e.Logger.Fatal(e.Start(":8080"))
 }
@@ -72,4 +73,8 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 	return nil
+}
+
+func health(c echo.Context) error {
+	return c.String(http.StatusOK, "OK")
 }
