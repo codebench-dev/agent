@@ -32,8 +32,9 @@ type (
 	}
 
 	runCRes struct {
-		Stdout string `json:"stdout"`
-		Stderr string `json:"stderr"`
+		Message string `json:"message"`
+		Stdout  string `json:"stdout"`
+		Stderr  string `json:"stderr"`
 	}
 )
 
@@ -128,8 +129,9 @@ func handleRunC(c echo.Context) error {
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, runCRes{
-			Stdout: string(out),
-			Stderr: err.Error(),
+			Message: "Failed to compile",
+			Stdout:  string(out),
+			Stderr:  err.Error(),
 		})
 	}
 
@@ -137,13 +139,15 @@ func handleRunC(c echo.Context) error {
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, runCRes{
-			Stdout: string(out),
-			Stderr: err.Error(),
+			Message: "Failed to run",
+			Stdout:  string(out),
+			Stderr:  err.Error(),
 		})
 	}
 
 	return c.JSON(http.StatusOK, runCRes{
-		Stdout: string(out),
-		Stderr: "",
+		Message: "Success",
+		Stdout:  string(out),
+		Stderr:  "",
 	})
 }
