@@ -28,6 +28,7 @@ type (
 	}
 
 	runCReq struct {
+		ID   string `json:"id" validate:"required"`
 		Code string `json:"code" validate:"required"`
 	}
 
@@ -103,7 +104,7 @@ func handleRunC(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	f, err := os.Create("/tmp/main.c")
+	f, err := os.Create("/tmp/" + req.ID + ".c")
 
 	if err != nil {
 		logrus.WithError(err).Error()
@@ -125,7 +126,7 @@ func handleRunC(c echo.Context) error {
 		})
 	}
 
-	out, err := exec.Command("gcc", "/tmp/main.c", "-o", "/tmp/a.out").Output()
+	out, err := exec.Command("gcc", "/tmp/"+req.ID+".c", "-o", "/tmp/"+req.ID+".out").Output()
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, runCRes{
@@ -135,7 +136,7 @@ func handleRunC(c echo.Context) error {
 		})
 	}
 
-	out, err = exec.Command("/tmp/a.out").Output()
+	out, err = exec.Command("/tmp/" + req.ID + ".out").Output()
 
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, runCRes{
