@@ -1,4 +1,4 @@
-use actix_web::{middleware, web, App, HttpResponse, HttpServer};
+use actix_web::{get, middleware, post, web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 
@@ -14,12 +14,10 @@ struct ExecRes {
     stderr: String,
 }
 
+#[post("/exec")]
 async fn exec(req: web::Json<ExecReq>) -> HttpResponse {
-    println!("model: {:?}", &req);
-
     let cmd_args = req.command.split_whitespace().collect::<Vec<&str>>();
-    let cmd_exec = cmd_args[0];
-    let cmd_res = Command::new(cmd_exec).args(&cmd_args[1..]).output();
+    let cmd_res = Command::new(cmd_args[0]).args(&cmd_args[1..]).output();
 
     match cmd_res {
         Ok(output) => {
@@ -35,6 +33,11 @@ async fn exec(req: web::Json<ExecReq>) -> HttpResponse {
     }
 }
 
+#[get("/health")]
+async fn health() -> HttpResponse {
+    HttpResponse::Ok().finish()
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     std::env::set_var("RUST_LOG", "actix_web=info");
@@ -45,43 +48,56 @@ async fn main() -> std::io::Result<()> {
             // enable logger
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
-            .service(web::resource("/exec").route(web::post().to(exec)))
+            .service(exec)
+            .service(health)
     })
     .bind("127.0.0.1:8080")?
     .run()
     .await
 }
 
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use actix_web::dev::Service;
-//     use actix_web::{http, test, web, App};
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use actix_web::{dev::Service, Error};
+    use actix_web::{http, test, App};
 
-//     #[actix_rt::test]
-//     async fn test_index() -> Result<(), Error> {
-//         let mut app =
-//             test::init_service(App::new().service(web::resource("/").route(web::post().to(index))))
-//                 .await;
+    #[actix_rt::test]
+    async fn test_health() -> Result<(), Error> {
+        let mut app = test::init_service(App::new().service(health)).await;
 
-//         let req = test::TestRequest::post()
-//             .uri("/")
-//             .set_json(&MyObj {
-//                 name: "my-name".to_owned(),
-//                 number: 43,
-//             })
-//             .to_request();
-//         let resp = app.call(req).await.unwrap();
+        let req = test::TestRequest::get().uri("/health").to_request();
+        let resp = app.call(req).await.unwrap();
 
-//         assert_eq!(resp.status(), http::StatusCode::OK);
+        assert_eq!(resp.status(), http::StatusCode::OK);
 
-//         let response_body = match resp.response().body().as_ref() {
-//             Some(actix_web::body::Body::Bytes(bytes)) => bytes,
-//             _ => panic!("Response error"),
-//         };
+        Ok(())
+    }
 
-//         assert_eq!(response_body, r##"{"name":"my-name","number":43}"##);
+    #[actix_rt::test]
+    async fn test_exec() -> Result<(), Error> {
+        let mut app = test::init_service(App::new().service(exec)).await;
 
-//         Ok(())
-//     }
-// }
+        let req = test::TestRequest::post()
+            .uri("/exec")
+            .set_json(&ExecReq {
+                command: "uname".to_string(),
+            })
+            .to_request();
+        let resp = app.call(req).await.unwrap();
+
+        assert_eq!(resp.status(), http::StatusCode::OK);
+
+        let response_body = match resp.response().body().as_ref() {
+            Some(actix_web::body::Body::Bytes(bytes)) => bytes,
+            _ => panic!("Response error"),
+        };
+
+        assert_eq!(
+            response_body,
+            r##"{"command":"uname","stdout":"Linux\n","stderr":""}"##
+        );
+
+        Ok(())
+    }
+}
