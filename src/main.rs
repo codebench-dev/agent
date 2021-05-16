@@ -1,6 +1,9 @@
 use actix_web::{get, middleware, post, web, App, HttpResponse, HttpServer};
 use serde::{Deserialize, Serialize};
-use std::{fs, process::Command};
+use std::{
+    fs, io,
+    process::{Command, Output},
+};
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ExecReq {
@@ -70,36 +73,54 @@ async fn health() -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
+fn compile_c(req: RunCreq) -> Result<String, Box<dyn std::error::Error>> {
+    fs::write(format!("/tmp/{}.c", req.id), req.code.clone())?;
+
+    Command::new("gcc")
+        .args(&[
+            format!("/tmp/{}.c", req.id),
+            "-o".to_string(),
+            format!("/tmp/{}.out", req.id),
+        ])
+        .output()?;
+
+    Ok(format!("/tmp/{}.out", req.id))
+}
+
+fn exec_binary(path: String) -> io::Result<Output> {
+    Command::new(path).output()
+}
+
 #[post("/run/c")]
 async fn run_c(req: web::Json<RunCreq>) -> HttpResponse {
-    match fs::write(format!("/tmp/{}.c", req.id), req.code.clone()) {
-        Err(_err) => HttpResponse::InternalServerError().finish(),
-        Ok(_) => {
-            let compile_res = Command::new("gcc")
-                .args(&[
-                    format!("/tmp/{}.c", req.id),
-                    "-o".to_string(),
-                    format!("/tmp/{}.out", req.id),
-                ])
-                .output();
-            match compile_res {
-                Err(_err) => HttpResponse::InternalServerError().finish(),
-                Ok(_) => {
-                    let exec_res = Command::new(format!("/tmp/{}.out", req.id)).output();
-                    match exec_res {
-                        Err(_err) => HttpResponse::InternalServerError().finish(),
-                        Ok(output) => {
-                            let res = RunCres {
-                                message: "stonks".to_string(),
-                                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-                            };
+    let compile_res = compile_c(RunCreq {
+        id: req.id.clone(),
+        code: req.code.clone(),
+    });
 
-                            HttpResponse::Ok().json(res)
-                        }
-                    }
-                }
-            }
+    let binary_path = match compile_res {
+        Err(err) => {
+            return HttpResponse::InternalServerError().json(RunCres {
+                message: err.to_string(),
+                stdout: "".to_string(),
+                stderr: "".to_string(),
+            })
+        }
+        Ok(path) => path,
+    };
+
+    let exec_res = exec_binary(binary_path);
+
+    match exec_res {
+        Err(_err) => HttpResponse::InternalServerError().finish(),
+        Ok(output) => {
+            let res = RunCres {
+                message: "stonks".to_string(),
+                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+            };
+
+            HttpResponse::Ok().json(res)
         }
     }
 }
