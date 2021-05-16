@@ -17,6 +17,8 @@ async fn main() -> std::io::Result<()> {
             .service(routes::exec_cmd)
             .service(routes::health)
             .service(routes::run_c)
+            .service(routes::run_python2)
+            .service(routes::run_python3)
     })
     .bind("0.0.0.0:8080")?
     .run()
