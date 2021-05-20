@@ -29,19 +29,25 @@ pub async fn run_python(req: web::Json<RunCodeReq>) -> HttpResponse {
 
     if let Err(err) = fs::write(filename.clone(), req.code.clone()) {
         return HttpResponse::InternalServerError().json(RunRes {
-            message: err.to_string(),
+            message: "Failed to write code to file".to_string(),
             stdout: "".to_string(),
-            stderr: "".to_string(),
+            stderr: err.to_string(),
         });
     }
 
     let exec_res = python::run_python(filename.clone(), variant);
 
     match exec_res {
-        Err(_err) => HttpResponse::InternalServerError().finish(),
+        Err(err) => {
+            return HttpResponse::BadRequest().json(RunRes {
+                message: "Failed to run".to_string(),
+                stdout: "".to_string(),
+                stderr: err.to_string(),
+            })
+        }
         Ok(output) => {
             let res = RunRes {
-                message: "".to_string(),
+                message: "OK".to_string(),
                 stdout: String::from_utf8_lossy(&output.stdout).to_string(),
                 stderr: String::from_utf8_lossy(&output.stderr).to_string(),
             };
@@ -81,7 +87,7 @@ mod tests {
 
         assert_eq!(
             response_body,
-            r##"{"message":"","stdout":"Hello, Python 2!\n","stderr":""}"##
+            r##"{"message":"OK","stdout":"Hello, Python 2!\n","stderr":""}"##
         );
 
         Ok(())
@@ -110,7 +116,7 @@ mod tests {
 
         assert_eq!(
             response_body,
-            r##"{"message":"","stdout":"Hello, Python 3!\n","stderr":""}"##
+            r##"{"message":"OK","stdout":"Hello, Python 3!\n","stderr":""}"##
         );
 
         Ok(())

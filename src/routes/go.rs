@@ -25,10 +25,10 @@ pub async fn run_go(req: web::Json<RunCodeReq>) -> HttpResponse {
 
     let binary_path = match compile_res {
         Err(err) => {
-            return HttpResponse::InternalServerError().json(RunRes {
-                message: err.to_string(),
+            return HttpResponse::BadRequest().json(RunRes {
+                message: "Failed to compile".to_string(),
                 stdout: "".to_string(),
-                stderr: "".to_string(),
+                stderr: err.to_string(),
             })
         }
         Ok(path) => path,
@@ -37,10 +37,16 @@ pub async fn run_go(req: web::Json<RunCodeReq>) -> HttpResponse {
     let exec_res = run::command::exec_binary(binary_path);
 
     match exec_res {
-        Err(_err) => HttpResponse::InternalServerError().finish(),
+        Err(err) => {
+            return HttpResponse::BadRequest().json(RunRes {
+                message: "Failed to execute code".to_string(),
+                stdout: "".to_string(),
+                stderr: err.to_string(),
+            })
+        }
         Ok(output) => {
             let res = RunRes {
-                message: "".to_string(),
+                message: "OK".to_string(),
                 stdout: String::from_utf8_lossy(&output.stdout).to_string(),
                 stderr: String::from_utf8_lossy(&output.stderr).to_string(),
             };
@@ -79,7 +85,7 @@ mod tests {
 
         assert_eq!(
             response_body,
-            r##"{"message":"","stdout":"Hello, Go!\n","stderr":""}"##
+            r##"{"message":"OK","stdout":"Hello, Go!\n","stderr":""}"##
         );
 
         Ok(())
