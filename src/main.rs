@@ -1,8 +1,7 @@
 use actix_web::{middleware, web, App, HttpServer};
 
-mod compile;
-mod exec;
 mod routes;
+mod run;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -14,11 +13,10 @@ async fn main() -> std::io::Result<()> {
             // enable logger
             .wrap(middleware::Logger::default())
             .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
-            .service(routes::exec_cmd)
-            .service(routes::health)
-            .service(routes::run_c)
-            .service(routes::run_python2)
-            .service(routes::run_python3)
+            .service(routes::health::health)
+            .service(routes::cmd::run_cmd)
+            .service(routes::c::run_c)
+            .service(routes::python::run_python)
     })
     .bind("0.0.0.0:8080")?
     .run()
