@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 pub mod c;
 pub mod cmd;
+pub mod go;
 pub mod health;
 pub mod python;
 
