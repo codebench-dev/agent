@@ -2,9 +2,10 @@
 
 set -xe
 
-apk add openrc
-apk add util-linux
-apk add gcc libc-dev
+apk add --no-cache openrc
+apk add --no-cache util-linux
+apk add --no-cache gcc libc-dev
+apk add --no-cache python3
 
 ln -s agetty /etc/init.d/agetty.ttyS0
 echo ttyS0 > /etc/securetty
