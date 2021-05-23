@@ -5,7 +5,7 @@ set -xe
 apk add --no-cache openrc
 apk add --no-cache util-linux
 apk add --no-cache gcc libc-dev
-apk add --no-cache python3
+apk add --no-cache python2 python3
 
 ln -s agetty /etc/init.d/agetty.ttyS0
 echo ttyS0 > /etc/securetty
