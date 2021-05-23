@@ -12,7 +12,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             // enable logger
             .wrap(middleware::Logger::default())
-            .data(web::JsonConfig::default().limit(4096)) // <- limit size of the payload (global configuration)
+            .data(web::JsonConfig::default()) // <- limit size of the payload (global configuration)
             .service(routes::health::health)
             .service(routes::cmd::run_cmd)
             .service(routes::c::run_c)
