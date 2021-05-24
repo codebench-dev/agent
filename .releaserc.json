@@ -5,6 +5,19 @@
     "plugins": [
         "@semantic-release/commit-analyzer",
         "@semantic-release/release-notes-generator",
-        "@semantic-release/github"
+        [
+            "@semantic-release/github",
+            {
+                "successComment": false,
+                "releasedLabels": false,
+                "assets": [
+                    {
+                        "path": "release.tar.gz",
+                        "name": "agent-${nextRelease.gitTag}-x86_64-unknown-linux-musl.tar.gz",
+                        "label": "agent-${nextRelease.gitTag}-x86_64-unknown-linux-musl.tar.gz"
+                    }
+                ]
+            }
+        ]
     ]
 }

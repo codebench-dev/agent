@@ -14,8 +14,13 @@ jobs:
         with:
           toolchain: stable
           override: true
-          profile: minimal
-      - run: cargo build --verbose
+          target: x86_64-unknown-linux-musl
+      - run: cargo build --release --verbose
+      - name: upload artifact of build output
+        uses: actions/upload-artifact@v2
+        with:
+          name: build
+          path: target/release/agent
 
   test:
     name: test
@@ -65,6 +70,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Download build artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: build
+          path: .
+      - name: Create release archive
+        run: tar -czvf release.tar.gz agent README.md LICENSE
       - name: Setup Node.js
         uses: actions/setup-node@v2
         with:
