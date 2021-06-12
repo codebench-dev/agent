@@ -11,6 +11,7 @@ pub struct RunRes {
     message: String,
     stdout: String,
     stderr: String,
+    exec_duration: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
