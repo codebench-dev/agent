@@ -21,6 +21,16 @@ jobs:
           name: build
           path: agent
 
+  golangci:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.41
+
   commitlint:
     runs-on: ubuntu-latest
     steps:
@@ -33,7 +43,7 @@ jobs:
 
   release:
     name: Publish new release
-    needs: [build, commitlint]
+    needs: [build, golangci, commitlint]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     steps:
