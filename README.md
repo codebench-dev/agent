@@ -5,14 +5,13 @@ To build the filesystem of the agent VM, see details in https://github.com/codeb
 ## Build
 
 ```sh
-cargo build
+go build
 ```
 
-With musl (for Alpine Linux):
+Static (for Alpine Linux):
 
 ```sh
-rustup target add x86_64-unknown-linux-musl
-cargo build --target x86_64-unknown-linux-musl
+go build -tags netgo -ldflags '-extldflags "-static"'
 ```
 
 ## Run

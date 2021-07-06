@@ -9,7 +9,7 @@ mount rootfs.ext4 /tmp/my-rootfs
 
 docker run -i --rm \
     -v /tmp/my-rootfs:/my-rootfs \
-    -v "$(pwd)/target/x86_64-unknown-linux-musl/release/agent:/usr/local/bin/agent" \
+    -v "$(pwd)/agent:/usr/local/bin/agent" \
     -v "$(pwd)/openrc-service.sh:/etc/init.d/agent" \
     alpine sh <setup-alpine.sh
 
