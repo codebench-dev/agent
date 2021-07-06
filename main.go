@@ -51,14 +51,14 @@ var toString = map[Language]string{
 	Python: "python",
 	C:      "c",
 	Cpp:    "cpp",
-	Golang: "golang",
+	Golang: "go",
 }
 
 var toID = map[string]Language{
 	"python": Python,
 	"c":      C,
 	"cpp":    Cpp,
-	"golang": Golang,
+	"go":     Golang,
 }
 
 // MarshalJSON marshals the enum as a quoted json string
