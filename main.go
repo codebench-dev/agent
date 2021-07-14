@@ -31,6 +31,7 @@ type (
 		Stdout       string `json:"stdout"`
 		Stderr       string `json:"stderr"`
 		ExecDuration int64  `json:"exec_duration"`
+		MemUsage     int64  `json:"mem_usage"`
 	}
 )
 
