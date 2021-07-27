@@ -17,6 +17,8 @@ echo "root:root" | chpasswd
 
 echo "nameserver 1.1.1.1" >>/etc/resolv.conf
 
+addgroup -g 1000 -S codebench && adduser -u 1000 -S codebench -G codebench
+
 rc-update add devfs boot
 rc-update add procfs boot
 rc-update add sysfs boot
